@@ -1,0 +1,29 @@
+---
+- name: Install and configure VSFTPD using a template
+  hosts: ftpservers
+  become: yes
+
+  vars:
+    anonymous_enable: "NO"
+
+  tasks:
+    - name: Install vsftpd
+      apt:
+        name: vsftpd
+        state: present
+        update_cache: yes
+
+    - name: Copy vsftpd configuration template
+      template:
+        src: templates/vsftpd.conf.j2
+        dest: /etc/vsftpd.conf
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Restart vsftpd service
+      service:
+        name: vsftpd
+        state: restarted
+        enabled: yes
+

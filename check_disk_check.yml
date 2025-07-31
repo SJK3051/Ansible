@@ -1,0 +1,20 @@
+---
+- name: Run disk usage check script
+  hosts: all
+  become: true
+  tasks:
+    - name: Copy disk check script to remote server
+      copy:
+        src: files/check_disk.sh
+        dest: /tmp/check_disk.sh
+        mode: '0755'
+
+    - name: Execute disk check script
+      command: /tmp/check_disk.sh
+      register: disk_check_result
+      failed_when: disk_check_result.rc != 0
+
+    - name: Print disk usage output
+      debug:
+        msg: "{{ disk_check_result.stdout }}"
+
