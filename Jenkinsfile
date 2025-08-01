@@ -1,23 +1,16 @@
 pipeline {
     agent any
+
     environment {
-        ANSIBLE_HOST_KEY_CHECKING = 'False'
+        ANSIBLE_CONFIG = "${WORKSPACE}/ansible.cfg"
     }
 
     stages {
-        stage('Clone Repo') {
+        stage('Checkout from GitHub - main branch') {
             steps {
-                git credentialsId: 'Ansible-task-pipeline',
-                    url: 'https://github.com/SJK3051/Ansible.git'
-            }
-        }
-
-        stage('Verify Inventory & Connection') {
-            steps {
-                echo '=== Printing inventory ==='
-                sh 'cat inventory'
-                echo '=== Pinging hosts ==='
-                sh 'ansible -i inventory Install -m ping'
+                git branch: 'main',
+                    url: 'https://github.com/SJK3051/Ansible.git',
+                    credentialsId: 'Ansible-task-pipeline'
             }
         }
 
@@ -42,11 +35,10 @@ pipeline {
 
     post {
         failure {
-            echo '❌ Deployment failed. Check the logs above.'
+            echo '❌ One or more playbooks failed!'
         }
         success {
-            echo '✅ Deployment completed successfully!'
+            echo '✅ All playbooks ran successfully!'
         }
     }
 }
-
