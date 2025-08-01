@@ -4,12 +4,6 @@ pipeline {
         ANSIBLE_HOST_KEY_CHECKING = 'False'
     }
     stages {
-        stage('Clone Ansible Repo') {
-            steps {
-                git url: 'https://github.com/SJK3051/Ansible.git'
-            }
-        }
-
         stage('Run Apache Playbook') {
             steps {
                 sh 'ansible-playbook -i inventory install-apachee2.yml'
@@ -27,8 +21,6 @@ pipeline {
                 sh 'ansible-playbook -i inventory vsftpd_install.yml'
             }
         }
-
-        // You can add more playbooks as stages...
     }
 }
 
