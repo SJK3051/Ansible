@@ -1,0 +1,61 @@
+---
+- name: Install Jenkins on Node Server (Ubuntu)
+  hosts: all
+  become: true
+
+  vars:
+    jenkins_port: 8080
+
+  tasks:
+    - name: Install Java 17 (required by Jenkins)
+      apt:
+        name: openjdk-17-jdk
+        state: present
+        update_cache: yes
+
+    - name: Add Jenkins GPG key
+      apt_key:
+        url: https://pkg.jenkins.io/debian/jenkins.io.key
+        state: present
+
+    - name: Add Jenkins repository
+      apt_repository:
+        repo: deb https://pkg.jenkins.io/debian binary/
+        state: present
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Jenkins
+      apt:
+        name: jenkins
+        state: present
+
+    - name: Reload systemd manager configuration
+      systemd:
+        daemon_reload: yes
+
+    - name: Ensure Jenkins service is enabled and started
+      systemd:
+        name: jenkins
+        state: started
+        enabled: yes
+      register: jenkins_start
+
+    - name: Debug Jenkins start failure
+      debug:
+        msg: "Jenkins failed to start. Run 'sudo journalctl -xeu jenkins' or 'sudo systemctl status jenkins' on the node."
+      when: jenkins_start.failed
+
+    - name: Open port 8080 in UFW (optional)
+      ufw:
+        rule: allow
+        port: "{{ jenkins_port }}"
+        proto: tcp
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Display Jenkins initial admin password location
+      debug:
+        msg: "Jenkins installed. Run: sudo cat /var/lib/jenkins/secrets/initialAdminPassword"
+
