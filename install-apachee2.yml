@@ -1,6 +1,6 @@
 
 ---
-- name: Installall
+- name: Install
   hosts: all
   become: yes  # Run tasks as sudo/root
   tasks:
