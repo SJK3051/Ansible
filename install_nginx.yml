@@ -1,0 +1,66 @@
+---
+- name: Install and configure Nginx on custom port (8081)
+  hosts: all
+  become: true
+
+  vars:
+    nginx_custom_port: 8081
+
+  tasks:
+    - name: Update APT cache
+      apt:
+        update_cache: yes
+
+    - name: Stop Apache2 if running (optional)
+      service:
+        name: apache2
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Change Nginx listen port to {{ nginx_custom_port }}
+      replace:
+        path: /etc/nginx/sites-available/default
+        regexp: 'listen 80 default_server;'
+        replace: 'listen {{ nginx_custom_port }} default_server;'
+      notify: Reload nginx
+
+    - name: Change IPv6 listen port to {{ nginx_custom_port }}
+      replace:
+        path: /etc/nginx/sites-available/default
+        regexp: 'listen \[::\]:80 default_server;'
+        replace: 'listen [::]:{{ nginx_custom_port }} default_server;'
+      notify: Reload nginx
+
+    - name: Reload systemd (optional)
+      systemd:
+        daemon_reload: yes
+
+    - name: Start and enable Nginx
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Allow custom Nginx port {{ nginx_custom_port }} in UFW
+      ufw:
+        rule: allow
+        port: '{{ nginx_custom_port }}'
+        proto: tcp
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Success message
+      debug:
+        msg: "Nginx is running on http://{{ inventory_hostname }}:{{ nginx_custom_port }}"
+
+  handlers:
+    - name: Reload nginx
+      service:
+        name: nginx
+        state: reloaded
+
