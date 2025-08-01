@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        ANSIBLE_CONFIG = "${WORKSPACE}/ansible.cfg"
-    }
-
     stages {
         stage('Checkout from GitHub - main branch') {
             steps {
