@@ -1,0 +1,76 @@
+---
+- name: Install Jenkins on Ubuntu 24.04
+  hosts: all
+  become: yes
+
+  vars:
+    java_package: openjdk-17-jdk
+    java_home_path: /usr/lib/jvm/java-17-openjdk-amd64
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Java 17
+      apt:
+        name: "{{ java_package }}"
+        state: present
+
+    - name: Set JAVA_HOME in /etc/environment
+      lineinfile:
+        path: /etc/environment
+        regexp: '^JAVA_HOME='
+        line: "JAVA_HOME={{ java_home_path }}"
+        create: yes
+
+    - name: Reload environment variables
+      shell: source /etc/environment
+      ignore_errors: yes
+
+    - name: Add Jenkins GPG key
+      apt_key:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io.key
+        state: present
+
+    - name: Add Jenkins repository
+      apt_repository:
+        repo: deb https://pkg.jenkins.io/debian-stable binary/
+        state: present
+        filename: jenkins
+
+    - name: Update apt cache again
+      apt:
+        update_cache: yes
+
+    - name: Install Jenkins
+      apt:
+        name: jenkins
+        state: present
+
+    - name: Ensure Jenkins service is enabled and started
+      systemd:
+        name: jenkins
+        enabled: yes
+        state: started
+      register: jenkins_service_status
+      failed_when: jenkins_service_status.failed and jenkins_service_status.rc != 0
+
+    - name: Output Jenkins logs if service failed
+      shell: journalctl -xeu jenkins.service | tail -n 30
+      register: jenkins_logs
+      when: jenkins_service_status.failed
+      failed_when: false
+
+    - name: Show Jenkins logs
+      debug:
+        var: jenkins_logs.stdout_lines
+      when: jenkins_service_status.failed
+
+    - name: Wait for Jenkins to be available on port 8080
+      wait_for:
+        port: 8080
+        timeout: 60
+        state: started
+      when: not jenkins_service_status.failed
+
